@@ -1,0 +1,23 @@
+module: "app"
+
+config:
+  path: "example_path.txt"
+
+plugins:
+
+  plugin1:
+    # every plugin requires a module name that points to
+    # where the plugin should be loaded from
+    module: "plugin1.implementation"
+
+    config:
+    # any additional items will be available to this plugin
+        max_iter: 5
+        scale: 0.8
+        output_path: "my_output.txt"
+
+  plugin2:
+    # module path
+    module: "plugin2.implementation3"
+
+    # config is optional and not used here
