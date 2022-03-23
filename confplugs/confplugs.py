@@ -1,13 +1,45 @@
 import importlib
 import logging
+import warnings
 from pathlib import Path
 from typing import Protocol, Any
+import re
 
 import yamale
 import yaml
 from yamlinclude import YamlIncludeConstructor
 
 logger = logging.getLogger(__name__)
+
+
+class TemplateVariableMissingException(Exception):
+    """Caused when a template variable is missing, but was required in the replacement process."""
+
+
+def _replace_template_variables(config_string, template_variables):
+    # check for variables in string
+    pattern = re.compile("\$[A-Z_0-9]+\$")
+    variables_found = pattern.findall(config_string)
+
+    if len(variables_found) == 0 and template_variables is None:
+        return config_string
+
+    for var in variables_found:
+        if var not in template_variables:
+            raise TemplateVariableMissingException(
+                f"The template variable '{var}' is present in the config file, but no replacement "
+                f"was given in the template_variables list: {template_variables}.")
+
+    for var in template_variables:
+        if var not in variables_found:
+            warnings.warn(RuntimeWarning(
+                f"The template variable '{var}' was given in the template_variables list, but it "
+                f"is not present in the config file."))
+
+    for name, value in template_variables.items():
+        config_string = config_string.replace(name, value)
+
+    return config_string
 
 
 class PluginModule(Protocol):
@@ -103,11 +135,7 @@ def load_plugin(config_path: str, template_variables: dict = None):
 
     with open(config_path) as config_file:
         config_string = config_file.read()
-
-        if template_variables is not None:
-            for name, value in template_variables.items():
-                config_string = config_string.replace(name, value)
-
+        config_string = _replace_template_variables(config_string, template_variables)
         config = yaml.load(config_string, Loader=yaml.FullLoader)
 
     return _load_plugin(config)
