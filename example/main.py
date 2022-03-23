@@ -7,4 +7,4 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 if __name__ == '__main__':
-    app = load_plugin("config.yaml")
+    app = load_plugin("config.yaml", template_variables={"$TEST_VAR$": "my_output.txt"})

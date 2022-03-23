@@ -88,7 +88,7 @@ def _load_plugin(config: dict):
     )
 
 
-def load_plugin(config_path: str):
+def load_plugin(config_path: str, template_variables: dict = None):
     """
     Loads a plugin using the config at the given config_path.
 
@@ -102,6 +102,12 @@ def load_plugin(config_path: str):
     )
 
     with open(config_path) as config_file:
-        config = yaml.load(config_file, Loader=yaml.FullLoader)
+        config_string = config_file.read()
+
+        if template_variables is not None:
+            for name, value in template_variables.items():
+                config_string = config_string.replace(name, value)
+
+        config = yaml.load(config_string, Loader=yaml.FullLoader)
 
     return _load_plugin(config)

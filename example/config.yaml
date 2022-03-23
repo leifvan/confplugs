@@ -14,7 +14,7 @@ plugins:
     # any additional items will be available to this plugin
         max_iter: 5
         scale: 0.8
-        output_path: "my_output.txt"
+        output_path: $TEST_VAR$
 
   plugin2:
     # module path
