@@ -108,9 +108,9 @@ def _load_plugin(config: dict):
         pass
 
     # load child plugins recursively
-    try:
+    if 'plugins' in config:
         child_plugins = {name: _load_plugin(conf) for name, conf in config['plugins'].items()}
-    except KeyError:
+    else:
         child_plugins = dict()
 
     logger.info(f"Initializing plugin {config['module']}")
