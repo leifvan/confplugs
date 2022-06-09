@@ -1,5 +1,6 @@
 import importlib
 import logging
+import sys
 import warnings
 from pathlib import Path
 from typing import Protocol, Any
@@ -100,6 +101,8 @@ def _load_plugin(config: dict):
             raise MissingConfigSchemaException(
                 f"The config of plugin '{config['module']}' is not empty, but no schema is given "
                 f"in the plugin module.")
+    except yamale.YamaleError:
+        print(f"yamale threw an error while parsing config of '{plugin_module}'", sys.stderr)
 
     # optionally parse config if parser is provided
     try:
