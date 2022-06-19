@@ -42,15 +42,21 @@ plugins:
     # any additional items will be available to this plugin
         max_iter: 5
         scale: 0.8
-        output_path: "my_output.txt"
+        output_path: $TEST_VAR$
 
   plugin2:
     # module path
     module: "plugin2.implementation3"
 
     # config is optional and not used here
-
 ````
+
+#### template variables
+Using the ``$VAR_NAME$`` syntax, it is possible to inject arbitrary values upon calling the ``load_plugin()`` function. Given a dictionary with `"VAR_NAME"` as a key, all occurences of the string `$VAR_NAME$` will be replaced with the corresponding value of the dictionary. 
+
+This might be used to further control the config values e.g. based on command-line inputs. This can be used to increase the portability of the config files, e.g. by providing a base path for all paths in the config.
+
+> **_Note:_** This step is done before any validation of the YAML file, so it is possible to inject any string - even additional YAML files. To split up the config into several files, however, it is recommended to include them as child plugins (see below). 
 
 ### structure of plugin files
 ````python
@@ -92,6 +98,7 @@ output_path: str()
 # arguments.
 plugin_config_parser = Plugin1Config
 ````
+
 
 ### includes from other config files
 
