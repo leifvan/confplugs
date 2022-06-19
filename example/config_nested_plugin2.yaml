@@ -1,0 +1,4 @@
+# module path
+module: "plugin2.implementation3"
+
+# config is optional and not used here

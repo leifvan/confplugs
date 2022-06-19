@@ -1,0 +1,13 @@
+module: "app"
+
+config:
+  path: "example_path.txt"
+
+plugins:
+
+  plugin1: "config_nested_plugin1.yaml"
+  plugin2:
+    # module path
+    module: "plugin2.implementation3"
+
+    # config is optional and not used here

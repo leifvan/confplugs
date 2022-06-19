@@ -1,0 +1,9 @@
+# every plugin requires a module name that points to
+# where the plugin should be loaded from
+module: "plugin1.implementation"
+
+config:
+# any additional items will be available to this plugin
+    max_iter: 5
+    scale: 0.8
+    output_path: $TEST_VAR$

@@ -7,4 +7,4 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 if __name__ == '__main__':
-    app = load_plugin("config.yaml", template_variables={"$TEST_VAR$": "my_output.txt", "$UNUSED_VAR$": "not used"})
+    app = load_plugin("config_nested.yaml", template_variables={"$TEST_VAR$": "my_output.txt", "$UNUSED_VAR$": "not used"})
