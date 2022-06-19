@@ -7,3 +7,6 @@ config:
     max_iter: 5
     scale: 0.8
     output_path: $TEST_VAR$
+
+plugins:
+    yet_another_plugin: "config_nested_plugin2.yaml"

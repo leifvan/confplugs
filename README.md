@@ -92,3 +92,24 @@ output_path: str()
 # arguments.
 plugin_config_parser = Plugin1Config
 ````
+
+### includes from other config files
+
+Instead of providing the complete config in one file, it is possible to reference configs of child plugins as a path, like in the nested example:
+
+````yaml
+module: "app"
+
+config:
+  path: "example_path.txt"
+
+plugins:
+
+  plugin1: "plugins/config_nested_plugin1.yaml"
+  plugin2:
+    # module path
+    module: "plugin2.implementation3"
+
+    # config is optional and not used here
+````
+Paths to child plugins are relative to the path of the parent config file.

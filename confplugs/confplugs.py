@@ -1,11 +1,11 @@
 import importlib
 import logging
+import re
 import sys
 import warnings
 from os import PathLike
 from pathlib import Path
 from typing import Protocol, Any, Union, Set, Dict
-import re
 
 import yamale
 import yaml
@@ -92,18 +92,21 @@ def _validate_config_dict(schema, config: Dict):
 
 def _load_plugin(
         config_or_path: Union[Dict, PathLike, str],
-        template_variables: _TemplateVariables
+        template_variables: _TemplateVariables,
+        base_dir: Path
 ):
     # if a path is given, load yaml file there
 
     try:
-        config_path = Path(config_or_path)  # type: ignore
+        config_path = base_dir / Path(config_or_path)  # type: ignore
+        child_base_dir = config_path.parent
         with open(config_path) as config_file:
             config_string = config_file.read()
             config_string = _replace_template_variables(config_string, template_variables)
             config: Dict = yaml.load(config_string, Loader=yaml.FullLoader)
     except TypeError:
         config: Dict = config_or_path
+        child_base_dir = base_dir
 
     # validate basic structure
 
@@ -146,7 +149,8 @@ def _load_plugin(
     # load child plugins recursively
 
     if 'plugins' in config:
-        child_plugins = {name: load_plugin(conf, template_variables) for name, conf in config['plugins'].items()}
+        child_plugins = {name: _load_plugin(conf, template_variables, child_base_dir)
+                         for name, conf in config['plugins'].items()}
     else:
         child_plugins = dict()
 
@@ -171,12 +175,19 @@ def load_plugin(
     :return: The initialized plugin.
     """
 
+    try:
+        config_or_path = Path(config_or_path)
+        base_dir = config_or_path.parent
+        config_or_path = config_or_path.name
+    except TypeError:
+        base_dir = Path.cwd()
+
     # create a _TemplateVariables instance to track which vars were used and warn about unused ones
 
     if template_variables is None:
         template_variables = dict()
 
     template_variables = _TemplateVariables(template_variables)
-    plugin = _load_plugin(config_or_path, template_variables)
+    plugin = _load_plugin(config_or_path, template_variables, base_dir)
     template_variables.warn_about_unused_vars()
     return plugin

@@ -5,7 +5,7 @@ config:
 
 plugins:
 
-  plugin1: "config_nested_plugin1.yaml"
+  plugin1: "plugins/config_nested_plugin1.yaml"
   plugin2:
     # module path
     module: "plugin2.implementation3"
