@@ -2,7 +2,7 @@ import re
 from os import PathLike
 from pathlib import Path
 
-from typing import Union, List
+from typing import Union, List, Tuple, Dict
 
 
 def get_template_variables(config_path: Union[PathLike, str]) -> List[str]:
@@ -40,3 +40,30 @@ def get_template_variables(config_path: Union[PathLike, str]) -> List[str]:
             pass
 
     return sorted(set(template_vars))
+
+
+def parse_template_variables_from_string(
+        string_or_list: Union[List, Tuple[str, ...], str]
+) -> Dict[str, str]:
+    """
+    Parses a string or list of strings of the form `VAR_NAME=VALUE` to a dictionary with
+    `d["$VAR_NAME$"] = "VALUE"`.
+
+    This can for example be used with an argument parser that parses into a list of variables:
+
+    ``parser.add_argument("-v", "--var", action="append", default=[])``
+
+    :param string_or_list: String or a list of strings to be parsed.
+    :return: A dictionary of variable names associated with their values.
+    """
+
+    if isinstance(string_or_list, str):
+        string_or_list = [string_or_list]
+
+    template_variables = dict()
+
+    for string in string_or_list:
+        name, value = string.split("=", maxsplit=1)
+        template_variables[f"${name}$"] = value
+
+    return template_variables
