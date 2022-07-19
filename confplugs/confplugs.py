@@ -157,10 +157,18 @@ def _load_plugin(
     # run init method and return
 
     logger.info(f"Initializing plugin {config['module']}")
-    return plugin_module.plugin_init(
+    instance = plugin_module.plugin_init(
         config=plugin_config,
         plugins=child_plugins
     )
+
+    # secretly try add the raw config to the plugin
+    try:
+        instance.__config_yaml__ = config
+    except AttributeError:
+        pass
+
+    return instance
 
 
 def load_plugin(
