@@ -148,11 +148,12 @@ def _load_plugin(
 
     # load child plugins recursively
 
+    child_plugins = dict()
     if 'plugins' in config:
-        child_plugins = {name: _load_plugin(conf, template_variables, child_base_dir)
-                         for name, conf in config['plugins'].items()}
-    else:
-        child_plugins = dict()
+        for name, conf in config['plugins'].items():
+            child_plugin, child_config = _load_plugin(conf, template_variables, child_base_dir)
+            child_plugins[name] = child_plugin
+            config['plugins'][name] = child_config
 
     # run init method and return
 
@@ -168,7 +169,7 @@ def _load_plugin(
     except AttributeError:
         pass
 
-    return instance
+    return instance, config
 
 
 def load_plugin(
@@ -196,6 +197,6 @@ def load_plugin(
         template_variables = dict()
 
     template_variables = _TemplateVariables(template_variables)
-    plugin = _load_plugin(config_or_path, template_variables, base_dir)
+    plugin, _ = _load_plugin(config_or_path, template_variables, base_dir)
     template_variables.warn_about_unused_vars()
     return plugin
