@@ -93,7 +93,8 @@ def _validate_config_dict(schema, config: Dict):
 def _load_plugin(
         config_or_path: Union[Dict, PathLike, str],
         template_variables: _TemplateVariables,
-        base_dir: Path
+        base_dir: Path,
+        require_validation: bool
 ):
     # if a path is given, load yaml file there
 
@@ -132,9 +133,14 @@ def _load_plugin(
     except AttributeError:
         # if the schema does not exist, the config has to be empty
         if len(plugin_config) > 0:
-            raise MissingConfigSchemaException(
-                f"The config of plugin '{config['module']}' is not empty, but no schema is given "
-                f"in the plugin module.")
+            if require_validation:
+                raise MissingConfigSchemaException(
+                    f"The config of plugin '{config['module']}' is not empty, but no schema is given "
+                    f"in the plugin module.")
+            else:
+                warnings.warn(RuntimeWarning(
+                    f"No validation schema was given for plugin '{config['module']}'."
+                ))
     except yamale.YamaleError as e:
         print(f"yamale threw an error while parsing config of '{plugin_module}'", sys.stderr)
         raise e
@@ -151,7 +157,7 @@ def _load_plugin(
     child_plugins = dict()
     if 'plugins' in config:
         for name, conf in config['plugins'].items():
-            child_plugin, child_config = _load_plugin(conf, template_variables, child_base_dir)
+            child_plugin, child_config = _load_plugin(conf, template_variables, child_base_dir, require_validation)
             child_plugins[name] = child_plugin
             config['plugins'][name] = child_config
 
@@ -174,13 +180,16 @@ def _load_plugin(
 
 def load_plugin(
         config_or_path: Union[Dict, PathLike, str],
-        template_variables: dict = None
+        template_variables: dict = None,
+        require_validation: bool = True
 ):
     """
     Loads a plugin using the config at the given config_path.
 
     :param config_or_path: Path to the plugin config or an already parsed dict object.
     :param template_variables: A dictionary of variables to replace in the config file.
+    :param require_validation: If True, the loader throws an error if no validation schema
+        is given for a non-empty plugin configuration. If False, a warning is shown.
     :return: The initialized plugin.
     """
 
@@ -197,6 +206,6 @@ def load_plugin(
         template_variables = dict()
 
     template_variables = _TemplateVariables(template_variables)
-    plugin, _ = _load_plugin(config_or_path, template_variables, base_dir)
+    plugin, _ = _load_plugin(config_or_path, template_variables, base_dir, require_validation)
     template_variables.warn_about_unused_vars()
     return plugin
