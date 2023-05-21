@@ -5,7 +5,7 @@ import sys
 import warnings
 from os import PathLike
 from pathlib import Path
-from typing import Protocol, Any, Union, Set, Dict
+from typing import Optional, Protocol, Any, Union, Set, Dict
 
 import yamale
 import yaml
@@ -89,26 +89,78 @@ plugin:
 def _validate_config_dict(schema, config: Dict):
     yamale.validate(schema, [(config, None)])
 
+    
+def _load_config(
+    config_or_path: Union[Dict[str, Any], PathLike, str],
+    template_variables: Dict[str, str],
+    parent_dir: Path
+) -> Dict[str, Any]:  
+    
+    # if its a path or string ending with .y[a]ml -> load as string
+    
+    if str(config_or_path).lower().endswith((".yml", ".yaml")):
+        config_path = parent_dir / Path(config_or_path)
+        child_parent_dir = config_path.parent
+        with open(config_path) as config_file:
+            config_or_path = config_file.read()
+            config_or_path = _replace_template_variables(config_or_path, template_variables)
+    else:
+        child_parent_dir = parent_dir
+    
+    # if its a string version of the yaml -> parse to dict
+    
+    if isinstance(config_or_path, str):
+        config_or_path = yaml.load(config_or_path, Loader=yaml.FullLoader) 
+    
+    # recursively load children
+     
+    if isinstance(config_or_path, dict):
+        for key, value in config_or_path.items():
+            config_or_path[key] = _load_config(value, template_variables, child_parent_dir)
+
+    # return config dict
+    
+    return config_or_path
+
+def load_config(
+    config_or_path: Union[Dict[str, Any], PathLike, str],
+    template_variables: Optional[Dict[str, str]] = None,
+    parent_dir: Optional[Path] = None
+) -> Dict[str, Any]:
+    """Loads a config yaml from a path, a string or a dict object. Optionally replaces all
+    template variables with the ones given in template_variables. If parent_dir is given,
+    paths will be interpreted relative to that directory instead of the current working
+    directory.
+    
+    Args:
+        config_or_path (Union[Dict, PathLike, str]): A path to a config file, a YAML string
+            describing the config or a (partially parsed) dictionary.
+        template_variables (Dict[str, str]): A mapping from PLACEHOLDER_NAME to its replacement
+            string. All occurences of "$PLACEHOLDER_NAME$" in the config will be replaced with
+            template_variables[PLACEHOLDER_NAME]. 
+        parent_dir (Union[Path, None], optional): If given, all paths will be interpreted as 
+        relative to this one. Defaults to the current working directory.
+
+    Returns:
+        Dict[str, Any]: The parsed config dictionary.
+    """
+    
+    if parent_dir is None:
+        parent_dir = Path.cwd()
+        
+    if template_variables is None:
+        template_variables = dict()
+
+    template_variables = _TemplateVariables(template_variables)
+    config = _load_config(config_or_path, template_variables, parent_dir)
+    template_variables.warn_about_unused_vars()
+    
+    return config
 
 def _load_plugin(
-        config_or_path: Union[Dict, PathLike, str],
-        template_variables: _TemplateVariables,
-        base_dir: Path,
+        config: Dict,
         require_validation: bool
 ):
-    # if a path is given, load yaml file there
-
-    try:
-        config_path = base_dir / Path(config_or_path)  # type: ignore
-        child_base_dir = config_path.parent
-        with open(config_path) as config_file:
-            config_string = config_file.read()
-            config_string = _replace_template_variables(config_string, template_variables)
-            config: Dict = yaml.load(config_string, Loader=yaml.FullLoader)
-    except TypeError:
-        config: Dict = config_or_path
-        child_base_dir = base_dir
-
     # validate basic structure
 
     _validate_config_dict(_base_schema, config)
@@ -157,7 +209,8 @@ def _load_plugin(
     child_plugins = dict()
     if 'plugins' in config:
         for name, conf in config['plugins'].items():
-            child_plugin, child_config = _load_plugin(conf, template_variables, child_base_dir, require_validation)
+            #child_plugin, child_config = _load_plugin(conf, template_variables, child_base_dir, require_validation)
+            child_plugin, child_config = _load_plugin(conf, require_validation)
             child_plugins[name] = child_plugin
             config['plugins'][name] = child_config
 
@@ -180,7 +233,7 @@ def _load_plugin(
 
 def load_plugin(
         config_or_path: Union[Dict, PathLike, str],
-        template_variables: dict = None,
+        template_variables: Optional[Dict[str, str]] = None,
         require_validation: bool = True
 ):
     """
@@ -192,20 +245,8 @@ def load_plugin(
         is given for a non-empty plugin configuration. If False, a warning is shown.
     :return: The initialized plugin.
     """
-
-    try:
-        config_or_path = Path(config_or_path)
-        base_dir = config_or_path.parent
-        config_or_path = config_or_path.name
-    except TypeError:
-        base_dir = Path.cwd()
-
     # create a _TemplateVariables instance to track which vars were used and warn about unused ones
-
-    if template_variables is None:
-        template_variables = dict()
-
-    template_variables = _TemplateVariables(template_variables)
-    plugin, _ = _load_plugin(config_or_path, template_variables, base_dir, require_validation)
-    template_variables.warn_about_unused_vars()
+    
+    config = load_config(config_or_path, template_variables)
+    plugin, _ = _load_plugin(config, require_validation)
     return plugin
